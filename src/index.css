@@ -1,0 +1,202 @@
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, sans-serif;
+  background: linear-gradient(180deg, #071426 0%, #0b1f3a 100%);
+  color: #f5f7fb;
+}
+
+/* Global text */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+span,
+div,
+label,
+small,
+strong,
+td,
+th,
+li {
+  color: inherit;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Links */
+a {
+  color: #f5f7fb;
+  text-decoration: none;
+}
+
+/* Form controls */
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  color: #f5f7fb;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9fb3c8;
+  opacity: 1;
+}
+
+/* Make date icon work better on dark UI */
+input[type='date'] {
+  color-scheme: dark;
+}
+
+select {
+  color-scheme: dark;
+}
+
+/* Buttons */
+button {
+  color: inherit;
+}
+
+/* Optional smoother look */
+input,
+select,
+textarea,
+button {
+  border-radius: 12px;
+}
+
+/* Prevent autofill yellow/black weirdness */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #f5f7fb;
+  -webkit-box-shadow: 0 0 0px 1000px #23364d inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* =========================================================
+   Cross-browser form controls (Safari ⇄ Chrome parity)
+   Safari ignores padding / radius / background on native
+   selects and date inputs unless appearance is reset, so we
+   reset it everywhere and draw our own chevron.
+   Specificity is deliberately high (html body …) so this beats
+   page-level rules such as `.x select { background: … !important }`.
+   ========================================================= */
+
+html body select:not([multiple]):not([size]) {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%239fb3c8' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 12px 8px !important;
+  padding-right: 40px !important;
+}
+
+/* Low-priority defaults (zero specificity: any page style wins) */
+:where(select) {
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+:where(select:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Text-like inputs: remove iOS/Safari inner shadow + native chrome */
+html body input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
+html body textarea {
+  -webkit-appearance: none;
+  appearance: none;
+  background-clip: padding-box;
+}
+
+/* Date / time inputs: Safari collapses them and centres the text */
+:where(input[type='date'], input[type='time'], input[type='datetime-local'], input[type='month']) {
+  min-height: 46px;
+  line-height: 1.3;
+  text-align: left;
+  color-scheme: dark;
+}
+
+html body input::-webkit-date-and-time-value {
+  text-align: left;
+  min-height: 1.3em;
+}
+
+html body input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+/* Number inputs: same spinner behaviour in both browsers */
+html body input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* Search inputs: hide Safari's built-in clear/decoration */
+html body input[type='search']::-webkit-search-decoration,
+html body input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+/* Checkboxes & radios: same size and gold accent everywhere */
+:where(input[type='checkbox'], input[type='radio']) {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex: 0 0 auto;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+html body input[type='checkbox'],
+html body input[type='radio'] {
+  accent-color: #d4af37;
+}
+
+/* Buttons: drop Safari's native button styling & tap flash */
+html body button {
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Consistent font rendering */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
