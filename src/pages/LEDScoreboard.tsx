@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { SyntheticEvent } from 'react';
 import { onValue, ref } from 'firebase/database';
 import { db } from '../firebase/db.js';
 
@@ -187,6 +188,13 @@ function parseSwimTimeToHundredths(value?: string) {
   }
 
   return null;
+}
+
+const PANTHERS_LOGO =
+  'https://tbspanthers.british-school.org/wp-content/uploads/2025/10/TBSPanthers-Logo-512px.png';
+
+function hideBrokenImage(e: SyntheticEvent<HTMLImageElement>) {
+  e.currentTarget.style.display = 'none';
 }
 
 export default function LEDScoreboard() {
@@ -717,11 +725,29 @@ export default function LEDScoreboard() {
 
         .hero-right {
           display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 16px;
+          min-width: 180px;
+        }
+
+        .hero-meta {
+          display: flex;
           flex-direction: column;
           align-items: flex-end;
           justify-content: center;
           gap: 8px;
-          min-width: 180px;
+          min-width: 0;
+        }
+
+        .brand-crest {
+          width: clamp(56px, 6.2vw, 92px);
+          height: clamp(56px, 6.2vw, 92px);
+          flex: 0 0 auto;
+          object-fit: contain;
+          filter: drop-shadow(0 0 14px rgba(103, 194, 255, 0.35));
+          user-select: none;
         }
 
         .meet-chip {
@@ -1145,6 +1171,33 @@ export default function LEDScoreboard() {
           border: 1px solid rgba(162, 219, 255, 0.45);
         }
 
+        .idle-emblem--brand {
+          background:
+            radial-gradient(circle at 50% 45%, rgba(103, 194, 255, 0.22) 0%, rgba(8, 35, 76, 0.55) 60%, rgba(5, 17, 38, 0) 100%);
+          border: 1px solid rgba(162, 219, 255, 0.22);
+          box-shadow:
+            inset 0 0 26px rgba(103, 194, 255, 0.1),
+            0 0 40px rgba(50, 166, 255, 0.18);
+          animation: crest-breathe 4.5s ease-in-out infinite;
+        }
+
+        .idle-emblem--brand img {
+          width: 82%;
+          height: 82%;
+          object-fit: contain;
+          filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.45));
+          user-select: none;
+        }
+
+        @keyframes crest-breathe {
+          0%, 100% { box-shadow: inset 0 0 26px rgba(103,194,255,0.1), 0 0 34px rgba(50,166,255,0.14); }
+          50% { box-shadow: inset 0 0 26px rgba(103,194,255,0.16), 0 0 56px rgba(50,166,255,0.3); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .idle-emblem--brand { animation: none; }
+        }
+
         .idle-emblem svg {
           width: 72%;
           height: 72%;
@@ -1271,6 +1324,18 @@ export default function LEDScoreboard() {
           opacity: 0.9;
         }
 
+        .footer-crest {
+          width: clamp(26px, 2.4vw, 38px);
+          height: clamp(26px, 2.4vw, 38px);
+          object-fit: contain;
+          user-select: none;
+        }
+
+        .footer-tag {
+          color: #eaf6ff;
+          opacity: 0.85;
+        }
+
         .footer-dot {
           width: 10px;
           height: 10px;
@@ -1288,8 +1353,12 @@ export default function LEDScoreboard() {
           }
 
           .hero-right {
-            align-items: flex-start;
+            justify-content: space-between;
             min-width: 0;
+          }
+
+          .hero-meta {
+            align-items: flex-start;
           }
 
           .meet-chip {
@@ -1407,6 +1476,11 @@ export default function LEDScoreboard() {
             grid-template-columns: 1fr;
             justify-items: start;
           }
+
+          .brand-crest {
+            width: 48px;
+            height: 48px;
+          }
         }
       `}</style>
 
@@ -1450,13 +1524,23 @@ export default function LEDScoreboard() {
             </div>
 
             <div className="hero-right">
-              <div className="meet-chip">
-                {meetName || 'Panthers Swim Meet'}
+              <div className="hero-meta">
+                <div className="meet-chip">
+                  {meetName || 'Panthers Swim Meet'}
+                </div>
+                <div className="status-pill">
+                  <span className="status-light" />
+                  <span>{showTimes ? 'Official Time' : 'Standby Mode'}</span>
+                </div>
               </div>
-              <div className="status-pill">
-                <span className="status-light" />
-                <span>{showTimes ? 'Official Time' : 'Standby Mode'}</span>
-              </div>
+
+              <img
+                className="brand-crest"
+                src={PANTHERS_LOGO}
+                alt="TBS Panthers"
+                draggable={false}
+                onError={hideBrokenImage}
+              />
             </div>
           </div>
 
@@ -1471,29 +1555,13 @@ export default function LEDScoreboard() {
               <div className="idle-content">
                 <div className="idle-card">
                   <div className="idle-card-left">
-                    <div className="idle-emblem" aria-hidden="true">
-                      <svg viewBox="0 0 100 100" fill="none">
-                        <circle
-                          cx="63"
-                          cy="24"
-                          r="10"
-                          fill="white"
-                          fillOpacity="0.98"
-                        />
-                        <path
-                          d="M18 44C31 34 44 29 55 30C64 31 71 36 79 44C67 46 59 47 49 48C39 49 28 48 18 44Z"
-                          fill="white"
-                          fillOpacity="0.98"
-                        />
-                        <path
-                          d="M12 58C29 54 48 56 66 63C76 67 84 72 90 77C72 76 56 73 40 68C28 64 18 61 12 58Z"
-                          fill="#9ad8ff"
-                        />
-                        <path
-                          d="M10 72C23 69 37 70 52 74C63 77 74 82 84 89C71 88 58 86 45 82C31 78 19 75 10 72Z"
-                          fill="#42b5ff"
-                        />
-                      </svg>
+                    <div className="idle-emblem idle-emblem--brand">
+                      <img
+                        src={PANTHERS_LOGO}
+                        alt="TBS Panthers"
+                        draggable={false}
+                        onError={hideBrokenImage}
+                      />
                     </div>
                   </div>
 
@@ -1616,7 +1684,19 @@ export default function LEDScoreboard() {
               )}
             </div>
 
-            <div className="footer-right"></div>
+            <div className="footer-right">
+              <img
+                className="footer-crest"
+                src={PANTHERS_LOGO}
+                alt=""
+                aria-hidden="true"
+                draggable={false}
+                onError={hideBrokenImage}
+              />
+              <span>TBS Panthers</span>
+              <span className="footer-dot" />
+              <span className="footer-tag">Swimming</span>
+            </div>
           </div>
         </div>
       </div>
