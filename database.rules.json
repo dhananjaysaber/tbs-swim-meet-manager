@@ -1,0 +1,108 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('active').val() === true"
+      }
+    },
+
+    "appState": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('active').val() === true"
+    },
+
+    "pushSubscriptions": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('active').val() === true",
+      ".write": true
+    },
+
+    "meets": {
+      ".read": true,
+
+      "$meetId": {
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('active').val() === true",
+
+        "teams": {
+          ".read": true
+        },
+
+        "swimmers": {
+          ".read": true
+        },
+
+        "events": {
+          ".read": true
+        },
+
+        "seeding": {
+          ".read": true
+        },
+
+        "entries": {
+          ".read": true,
+          "$entryId": {
+            ".write": true
+          }
+        },
+
+        "results": {
+          ".read": true,
+          "$entryId": {
+            ".write": true
+          }
+        },
+
+        "liveDisplay": {
+          ".read": true,
+          ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('active').val() === true"
+        },
+
+        "laneDevices": {
+          ".read": true,
+          ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('active').val() === true"
+        },
+
+        "starterSession": {
+          ".read": true,
+          "current": {
+            ".read": true,
+            "lanes": {
+              "$laneNumber": {
+                ".read": true,
+                ".write": true
+              }
+            }
+          }
+        },
+
+        "teamPins": {
+          ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('active').val() === true",
+          "$teamId": {
+            ".read": true,
+            ".write": "data.exists() && newData.exists()",
+            ".validate": "(auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('active').val() === true) || (newData.child('pin').val() === data.child('pin').val() && newData.child('active').val() === data.child('active').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('createdBy').val() === data.child('createdBy').val())"
+          }
+        },
+
+        "laneTimerPins": {
+          ".read": false,
+          ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('active').val() === true"
+        },
+
+        "teamEntryReviews": {
+          ".read": true,
+          ".write": true
+        },
+
+        "fanNotifications": {
+          ".read": true,
+          ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('active').val() === true"
+        }
+      }
+    }
+  }
+}
