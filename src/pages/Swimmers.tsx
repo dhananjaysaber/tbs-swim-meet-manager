@@ -6,7 +6,7 @@ import {
   type CSSProperties,
   type ChangeEvent,
 } from 'react';
-import { push, ref, set, onValue, update, remove } from 'firebase/database';
+import { push, ref, set, onValue, update, remove, get } from 'firebase/database';
 import { auth } from '../firebase/auth';
 import { db } from '../firebase/db';
 import AppShell from '../components/AppShell';
@@ -762,6 +762,86 @@ export default function Swimmers() {
     setEditActive(true);
   };
 
+  /**
+   * Keep event entries and saved seeding in step with the swimmer record.
+   * Entries / seeding lanes store a copy of the swimmer's name and team,
+   * so without this an edit or delete leaves stale rows behind.
+   */
+  type SwimmerCascade =
+    | { remove: true }
+    | {
+        remove?: false;
+        swimmerName?: string;
+        gender?: string;
+        ageGroup?: string;
+        teamId?: string;
+        teamName?: string;
+      };
+
+  const cascadeSwimmerChanges = async (
+    changes: Record<string, SwimmerCascade>
+  ) => {
+    if (!activeMeetId || Object.keys(changes).length === 0) return 0;
+
+    const [entriesSnap, seedingSnap] = await Promise.all([
+      get(ref(db, `meets/${activeMeetId}/entries`)),
+      get(ref(db, `meets/${activeMeetId}/seeding`)),
+    ]);
+
+    const updates: Record<string, unknown> = {};
+
+    const applyPatch = (
+      basePath: string,
+      change: SwimmerCascade,
+      fields: Array<'swimmerName' | 'gender' | 'ageGroup' | 'teamId' | 'teamName'>
+    ) => {
+      if (change.remove) {
+        updates[basePath] = null;
+        return;
+      }
+      fields.forEach((field) => {
+        const value = change[field];
+        if (value !== undefined) updates[`${basePath}/${field}`] = value;
+      });
+    };
+
+    const entriesVal = (entriesSnap.val() || {}) as Record<string, any>;
+    Object.entries(entriesVal).forEach(([entryId, entry]) => {
+      const change = changes[String(entry?.swimmerId || '')];
+      if (!change) return;
+      applyPatch(`entries/${entryId}`, change, [
+        'swimmerName',
+        'gender',
+        'ageGroup',
+        'teamId',
+        'teamName',
+      ]);
+    });
+
+    const seedingVal = (seedingSnap.val() || {}) as Record<string, any>;
+    Object.entries(seedingVal).forEach(([eventId, eventNode]) => {
+      Object.entries(eventNode?.heats || {}).forEach(
+        ([heatKey, heatNode]: [string, any]) => {
+          Object.entries(heatNode?.lanes || {}).forEach(
+            ([laneKey, lane]: [string, any]) => {
+              const change = changes[String(lane?.swimmerId || '')];
+              if (!change) return;
+              applyPatch(
+                `seeding/${eventId}/heats/${heatKey}/lanes/${laneKey}`,
+                change,
+                ['swimmerName', 'teamId', 'teamName']
+              );
+            }
+          );
+        }
+      );
+    });
+
+    if (Object.keys(updates).length === 0) return 0;
+    await update(ref(db, `meets/${activeMeetId}`), updates);
+    return Object.keys(updates).length;
+  };
+
   const handleUpdateSwimmer = async (swimmerId: string) => {
     if (!editFirstName.trim()) {
       setMsg('Please enter first name');
@@ -807,6 +887,16 @@ export default function Swimmers() {
         active: editActive,
       });
 
+      await cascadeSwimmerChanges({
+        [swimmerId]: {
+          swimmerName: `${editFirstName.trim()} ${editLastName.trim()}`.trim(),
+          gender: editGender,
+          ageGroup: editAgeGroup,
+          teamId: selectedEditTeam.id,
+          teamName: selectedEditTeam.name || '',
+        },
+      });
+
       setMsg('Swimmer updated successfully');
       handleCancelEdit();
     } catch (error: any) {
@@ -836,7 +926,8 @@ export default function Swimmers() {
 
     try {
       await remove(ref(db, `meets/${activeMeetId}/swimmers/${swimmer.id}`));
-      setMsg('Swimmer deleted successfully');
+      await cascadeSwimmerChanges({ [swimmer.id]: { remove: true } });
+      setMsg('Swimmer deleted (entries and seeding lanes removed)');
     } catch (error: any) {
       setMsg(error.message || 'Failed to delete swimmer');
     }
@@ -923,6 +1014,18 @@ export default function Swimmers() {
         });
       }
 
+      await cascadeSwimmerChanges(
+        Object.fromEntries(
+          selectedSwimmerIds.map((id) => [
+            id,
+            {
+              teamId: selectedBulkTeam.id,
+              teamName: selectedBulkTeam.name || '',
+            },
+          ])
+        )
+      );
+
       setMsg(
         `${selectedSwimmerIds.length} swimmer(s) updated to ${
           selectedBulkTeam.name || 'selected team'
@@ -955,6 +1058,12 @@ export default function Swimmers() {
       for (const swimmerId of selectedSwimmerIds) {
         await remove(ref(db, `meets/${activeMeetId}/swimmers/${swimmerId}`));
       }
+
+      await cascadeSwimmerChanges(
+        Object.fromEntries(
+          selectedSwimmerIds.map((id) => [id, { remove: true as const }])
+        )
+      );
 
       setMsg(`${selectedSwimmerIds.length} swimmer(s) deleted successfully`);
       setSelectedSwimmerIds([]);

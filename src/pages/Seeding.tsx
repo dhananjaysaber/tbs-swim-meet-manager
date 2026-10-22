@@ -18,6 +18,26 @@ type MeetRow = {
   laneCount?: number;
 };
 
+type SwimmerLite = {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
+  gender?: string;
+  ageGroup?: string;
+  teamId?: string;
+  teamName?: string;
+  active?: boolean;
+};
+
+function swimmerDisplayName(swimmer?: SwimmerLite | null) {
+  if (!swimmer) return '';
+  return (
+    String(swimmer.fullName || '').trim() ||
+    `${swimmer.firstName || ''} ${swimmer.lastName || ''}`.trim()
+  );
+}
+
 type TeamRow = {
   id: string;
   name?: string;
@@ -537,6 +557,10 @@ export default function Seeding() {
   const [activeMeet, setActiveMeet] = useState<MeetRow | null>(null);
 
   const [teams, setTeams] = useState<TeamRow[]>([]);
+
+  const [swimmers, setSwimmers] = useState<SwimmerLite[]>([]);
+
+  const [swimmersLoaded, setSwimmersLoaded] = useState(false);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [entries, setEntries] = useState<EntryRow[]>([]);
   const [selectedEventId, setSelectedEventId] = useState('');
@@ -582,12 +606,42 @@ export default function Seeding() {
     return currentTeam?.name || item.teamName || 'No team';
   };
 
+  const swimmersById = useMemo(() => {
+    const map: Record<string, SwimmerLite> = {};
+    swimmers.forEach((swimmer) => {
+      map[swimmer.id] = swimmer;
+    });
+    return map;
+  }, [swimmers]);
+
+  // Entries keep a copy of the swimmer's name/team from when they were
+  // entered. Always prefer the live swimmer record so edits show up, and
+  // drop entries whose swimmer was deleted or marked inactive.
   const syncedEntries = useMemo(() => {
-    return entries.map((entry) => ({
-      ...entry,
-      teamName: resolveTeamName(entry),
-    }));
-  }, [entries, teamsById]);
+    return entries
+      .filter((entry) => {
+        if (!swimmersLoaded) return true;
+        const swimmerId = String(entry.swimmerId || '');
+        if (!swimmerId) return true;
+        const swimmer = swimmersById[swimmerId];
+        return !!swimmer && swimmer.active !== false;
+      })
+      .map((entry) => {
+        const swimmer = entry.swimmerId
+          ? swimmersById[String(entry.swimmerId)]
+          : undefined;
+        const merged: EntryRow = {
+          ...entry,
+          swimmerName: swimmerDisplayName(swimmer) || entry.swimmerName,
+          teamId: swimmer?.teamId || entry.teamId,
+          teamName: swimmer?.teamName || entry.teamName,
+        };
+        return {
+          ...merged,
+          teamName: resolveTeamName(merged),
+        };
+      });
+  }, [entries, teamsById, swimmersById, swimmersLoaded]);
 
   const activeEvents = useMemo(() => {
     return [...events]
@@ -698,6 +752,8 @@ export default function Seeding() {
   useEffect(() => {
     if (!activeMeetId) {
       setTeams([]);
+      setSwimmers([]);
+      setSwimmersLoaded(false);
       setEvents([]);
       setEntries([]);
       setSelectedEventId('');
@@ -713,6 +769,17 @@ export default function Seeding() {
     const eventsRef = ref(db, `meets/${activeMeetId}/events`);
     const entriesRef = ref(db, `meets/${activeMeetId}/entries`);
     const seedingRef = ref(db, `meets/${activeMeetId}/seeding`);
+    const swimmersRef = ref(db, `meets/${activeMeetId}/swimmers`);
+
+    setSwimmersLoaded(false);
+    const unsubSwimmers = onValue(swimmersRef, (snap) => {
+      const val = snap.val() || {};
+      const rows: SwimmerLite[] = Object.entries(val).map(
+        ([id, item]: any) => ({ id, ...item })
+      );
+      setSwimmers(rows);
+      setSwimmersLoaded(true);
+    });
 
     const unsubTeams = onValue(teamsRef, (snap) => {
       const val = snap.val();
@@ -789,6 +856,7 @@ export default function Seeding() {
       unsubEvents();
       unsubEntries();
       unsubSeeding();
+      unsubSwimmers();
     };
   }, [activeMeetId]);
 
